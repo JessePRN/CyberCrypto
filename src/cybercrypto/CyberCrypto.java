@@ -5,6 +5,8 @@
  */
 package cybercrypto;
 
+import static cybercrypto.ScanData.scan;
+import java.util.ArrayList;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -17,9 +19,18 @@ import javafx.stage.Stage;
  */
 public class CyberCrypto extends Application {
     
+    ArrayList<Double> rawData;
+    ArrayList<Integer> dataQuantified;
+    String fileName = "ECG.xlsx";
+    
     @Override
     public void start(Stage stage) throws Exception {
+        
         Parent root = FXMLLoader.load(getClass().getResource("FXMLDocument.fxml"));
+        
+        //rawData = scan(fileName);
+        
+        
         
         Scene scene = new Scene(root);
         
@@ -33,5 +44,7 @@ public class CyberCrypto extends Application {
     public static void main(String[] args) {
         launch(args);
     }
+    
+    
     
 }
