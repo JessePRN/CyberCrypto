@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.*?>
+<?import javafx.scene.canvas.*?>
 <?import java.lang.*?>
 <?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
@@ -66,10 +68,17 @@
           </Tab>
           <Tab text="A5/1">
             <content>
-              <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+              <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                     <children>
+                        <Button fx:id="a51EncryptButton" layoutX="476.0" layoutY="100.0" mnemonicParsing="false" onAction="#a51EncryptButtonAction" text="Encrypt" />
+                        <Button fx:id="a51DecryptButton" layoutX="475.0" layoutY="147.0" mnemonicParsing="false" onAction="#a51DecryptButtonAction" text="Decrypt" />
+                        <Label fx:id="keyPrompt" layoutX="28.0" layoutY="115.0" text="Enter IV in hex (16 characters)" />
+                        <TextField fx:id="keyField" layoutX="26.0" layoutY="147.0" prefHeight="31.0" prefWidth="179.0" promptText="A58F 26C3 1337 E42D" />
+                     </children></AnchorPane>
             </content>
           </Tab>
         </tabs>
       </TabPane>
+      <Label fx:id="warning" layoutX="338.0" layoutY="424.0" text="Warning" textFill="#ee2121" />
     </children>
 </AnchorPane>
