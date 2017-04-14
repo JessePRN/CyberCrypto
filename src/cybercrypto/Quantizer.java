@@ -5,13 +5,13 @@
  */
 package cybercrypto;
 
-
-
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Random;
 
 /**
  *
@@ -58,6 +58,8 @@ public class Quantizer {
 
     public ArrayList<Integer> convert(ArrayList dataArray) {
         int arrayIndex = 0;
+        long seed = System.nanoTime();
+        Collections.shuffle(safenumbers, new Random(seed));
 
         for (int i = 0; i < dataArray.size(); i++) {
             if (!lookup.containsKey((dataArray.get(i)))) {
