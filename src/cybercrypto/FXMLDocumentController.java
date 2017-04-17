@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package cybercrypto;
 
 import static cybercrypto.ScanData.scan;
@@ -23,10 +18,6 @@ import javafx.scene.text.TextFlow;
 import java.math.BigInteger;
 import javafx.scene.layout.GridPane;
 
-/**
- *
- * @author jesse
- */
 public class FXMLDocumentController implements Initializable {
 
     ArrayList<Double> rawData;
@@ -34,12 +25,13 @@ public class FXMLDocumentController implements Initializable {
     ArrayList<Integer> quantifiedData;
     ArrayList<String> encrypted;
     ArrayList<String> decrypted;
-
+    String input;
     String filePath = "src\\cybercrypto\\ECG.xlsx";
     FormatData formatObject;
     Quantizer quantizerObject;
     Knapsack ksObject;
-    A51 a51Object;
+    A51 a51EncryptObject;
+    A51 a51DecryptObject;
 
     @FXML
     private Label label, keyPrompt, warning;
@@ -64,6 +56,7 @@ public class FXMLDocumentController implements Initializable {
 
     @FXML
     private void clearGraphButtonHandler(ActionEvent event) {
+        //this method clears all charts
         chart1.getData().clear();
         chart2.getData().clear();
         chart3.getData().clear();
@@ -72,112 +65,65 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private void handleButtonAction(ActionEvent event) {
 
-        //label.setText("Working Directory = "  + System.getProperty("user.dir"));
-        rawData = scan(filePath);
-        quantizerObject = new Quantizer();
-        quantifiedData = quantizerObject.convert(rawData);
-        XYChart.Series series = new XYChart.Series();
-
-        for (int i = 0; i < rawData.size(); i++) {
-            series.getData().add(new XYChart.Data(i, rawData.get(i)));
-        }
-        chart1.getData().addAll(series);
+        chartData(rawData, chart1);
 
         rawGridpane.getChildren().clear();
         quantizedGridpane.getChildren().clear();
 
-        rawGridpane.add(new Label("Index"), 0, 0);
-        rawGridpane.add(new Label("Value"), 1, 0);
-
-        quantizedGridpane.add(new Label("Index"), 0, 0);
-        quantizedGridpane.add(new Label(" Value"), 1, 0);
-
-        for (int i = 0; i != rawData.size(); i++) {
-
-            rawGridpane.add(new Label(Integer.toString(i + 1)), 0, i + 1);
-            rawGridpane.add(new Label(Double.toString(rawData.get(i))), 1, i + 1);
-        }
-
-        for (int i = 0; i < quantifiedData.size(); i++) {
-
-            quantizedGridpane.add(new Label(Integer.toString(i + 1)), 0, i + 1);
-            quantizedGridpane.add(new Label(Integer.toString(quantifiedData.get(i))), 1, i + 1);
-        }
+        populateGridpane(rawData, rawGridpane);
+        populateGridpane(quantifiedData, quantizedGridpane);
 
     }
 
     @FXML
     private void ksEncryptButtonAction(ActionEvent event) {
 
-        formatObject = new FormatData();
         quantizerObject = new Quantizer();
 
+        //maps raw values onto quantized values using knapsack safenumbers. key<->value map maintained in Quantizer.lookup Map object
         quantifiedData = quantizerObject.convert(rawData);
+
+        //convers arraylist ints to arraylist (binary) strings
         stringData = formatObject.formatIntToString(quantifiedData);
+
+        //encrypts
         encrypted = ksObject.encrypt(stringData);
-        ArrayList<Integer> tempArray = new ArrayList<>();
 
-        for (int i = 0; i < encrypted.size(); i++) {
-            tempArray.add(Integer.parseInt(encrypted.get(i), 2));
-        }
+        //formats encrypted (binary) string arraylist back into arraylist ints for charting
+        ArrayList<Integer> tempArray = formatObject.formatStringToInt(encrypted);
 
-        XYChart.Series series = new XYChart.Series();
-        for (int i = 0; i < tempArray.size(); i++) {
-            series.getData().add(new XYChart.Data(i, tempArray.get(i)));
-        }
-        chart2.getData().addAll(series);
-        encryptedGridpane.getChildren().clear();
-        encryptedGridpane.add(new Label("Index"), 0, 0);
-        encryptedGridpane.add(new Label("Value"), 1, 0);
+        //charts data onto GUI     
+        chartData(tempArray, chart2);
 
-        for (int i = 0; i != tempArray.size(); i++) {
-
-            encryptedGridpane.add(new Label(Integer.toString(i + 1)), 0, i + 1);
-            encryptedGridpane.add(new Label(Integer.toString(tempArray.get(i))), 1, i + 1);
-        }
+        //populates GUI gridpane with values
+        populateGridpane(tempArray, encryptedGridpane);
 
     }
 
     @FXML
     private void ksDecryptButtonAction(ActionEvent event) {
-        formatObject = new FormatData();
-        quantizerObject = new Quantizer();
 
-        quantifiedData = quantizerObject.convert(rawData);
-        stringData = formatObject.formatIntToString(quantifiedData);
-        encrypted = ksObject.encrypt(stringData);
+        //retrieves last KS-encrypted arraylist (as new ones generated with each button click)
+        encrypted = ksObject.getLastEncrypted();
+
+        //decrypts it
         decrypted = ksObject.decrypt(encrypted);
 
-        ArrayList<Integer> tempArray = new ArrayList<>();
+        //formats decrypted (binary) String arraylist into integer arraylist for dequantizing 
+        ArrayList<Integer> tempArray = formatObject.formatStringToInt(decrypted);
 
-        for (int i = 0; i < decrypted.size(); i++) {
-            tempArray.add(Integer.parseInt(decrypted.get(i), 2));
-        }
+        //runs quantized values through lookup to retrieve raw values
+        ArrayList<Double> tempArray2 = quantizerObject.deconvert(tempArray);
 
-        ArrayList<Double> tempArray2 = new ArrayList<>();
-        tempArray2 = quantizerObject.deconvert(tempArray);
-
-        XYChart.Series series = new XYChart.Series();
-        for (int i = 0; i < tempArray2.size(); i++) {
-            series.getData().add(new XYChart.Data(i, tempArray2.get(i)));
-        }
-        chart3.getData().addAll(series);
-        decryptedGridpane.getChildren().clear();
-        decryptedGridpane.add(new Label("Index"), 0, 0);
-        decryptedGridpane.add(new Label("Value"), 1, 0);
-
-        for (int i = 0; i != tempArray2.size(); i++) {
-
-            decryptedGridpane.add(new Label(Integer.toString(i + 1)), 0, i + 1);
-            decryptedGridpane.add(new Label(Double.toString(tempArray2.get(i))), 1, i + 1);
-        }
+        chartData(tempArray2, chart3);
+        populateGridpane(tempArray2, decryptedGridpane);
 
     }
 
     @FXML
     public void a51EncryptButtonAction(ActionEvent e) {
 
-        String input;
+        //String input;
         //keyField.getText().replaceAll("\\s","")
 
         /*
@@ -210,7 +156,7 @@ public class FXMLDocumentController implements Initializable {
                 input = "0" + input;
             }
 
-        } else{
+        } else {
             input = (new BigInteger(keyField.getText().replaceAll("\\s", ""), 16).toString(2));
             while (input.length() < 64) {
                 input = "0" + input;
@@ -219,154 +165,69 @@ public class FXMLDocumentController implements Initializable {
 
         ArrayList<Integer> intPlainText;
         FormatData formatObject = new FormatData();
-        Quantizer quantizerObject = new Quantizer();
+        quantizerObject = new Quantizer();
 
         quantifiedData = quantizerObject.convert(rawData);
-        System.out.println(quantifiedData);
+
         intPlainText = formatObject.formatIntToBit(quantifiedData);
 
-        ArrayList<Integer> cipherInt = a51Encrypt(input, intPlainText);
+        a51EncryptObject = new A51(input, intPlainText);
 
-        System.out.println(cipherInt);
+        ArrayList<Integer> ciphertextCopy = a51EncryptObject.encryptCycle();
 
-        XYChart.Series series = new XYChart.Series();
-        for (int i = 0; i < cipherInt.size(); i++) {
-            series.getData().add(new XYChart.Data(i, cipherInt.get(i)));
-        }
+        ArrayList<String> ciphertextStringArray = formatObject.formatBytesToStringArray(ciphertextCopy);
 
-        chart2.getData().addAll(series);
+        ArrayList<Integer> cipherInt = formatObject.formatStringToInt(ciphertextStringArray);
 
-        encryptedGridpane.getChildren().clear();
-        encryptedGridpane.add(new Label("Index"), 0, 0);
-        encryptedGridpane.add(new Label("Value"), 1, 0);
+        chartData(cipherInt, chart2);
+        populateGridpane(cipherInt, encryptedGridpane);
 
-        for (int i = 0; i != cipherInt.size(); i++) {
-
-            encryptedGridpane.add(new Label(Integer.toString(i)), 0, i + 1);
-            encryptedGridpane.add(new Label(  Integer.toString(((cipherInt.get(i)).intValue()) )), 1, i + 1);
-        }
-
-        /* test code
-            System.out.println("ciphertext is " + a51Object.ciphertext);
-            System.out.println("keystream is " + a51Object.keystream);
-            System.out.println("queue is " + a51Object.queue);
-            System.out.println("plaintext is " + a51Object.plaintext);
-
-            System.out.println("cipher length is " + a51Object.ciphertext.size());
-            System.out.println("keystream length: " + a51Object.keystream.size());
-
-            System.out.println("queue is " + a51Object.queue.size());
-            System.out.println("plaintext is " + a51Object.plaintext.size());
-         */
+      
     }
 
     @FXML
     public void a51DecryptButtonAction(ActionEvent e) {
 
-        ArrayList<Integer> ciphertextArray = a51Object.ciphertext;
-        ArrayList<Double> plaintextDequantified;
-        Quantizer quantizerObject = new Quantizer();
+        a51DecryptObject = new A51(input, a51EncryptObject.ciphertext);
 
-        String defaultString = "A58F26C31337E42D";
-        String input = (new BigInteger(defaultString, 16).toString(2));
-        while (input.length() < 64) {
-            input = "0" + input;
-        }
+       
 
-        ArrayList<Integer> plaintextArray = a51Encrypt(input, ciphertextArray);
-
-        System.out.println(plaintextArray);
-
-        ArrayList<Integer> plaintextInteger;
-
-        plaintextDequantified = quantizerObject.deconvert(plaintextArray);
-
-        System.out.print(plaintextDequantified);
-        /*
-         XYChart.Series series = new XYChart.Series();
         
-         for (int i = 0; i < plaintextDequantified.size(); i++) {
-            series.getData().add(new XYChart.Data(i, plaintextDequantified.get(i)));
-        }
-
-        chart3.getData().addAll(series);
-        
-         */
-
-        rawData = scan(filePath);
-        quantizerObject = new Quantizer();
-        quantifiedData = quantizerObject.convert(rawData);
-        XYChart.Series series = new XYChart.Series();
-
-        for (int i = 0; i < rawData.size(); i++) {
-            series.getData().add(new XYChart.Data(i, rawData.get(i)));
-        }
-        chart3.getData().addAll(series);
-
-        decryptedGridpane.getChildren().clear();
-        decryptedGridpane.add(new Label("Index"), 0, 0);
-        decryptedGridpane.add(new Label("Value"), 1, 0);
-
-        for (int i = 0; i != rawData.size(); i++) {
-
-            decryptedGridpane.add(new Label(Integer.toString(i + 1)), 0, i + 1);
-            decryptedGridpane.add(new Label(Double.toString(rawData.get(i))), 1, i + 1);
-        }
-
-    }
-
-    public ArrayList<Integer> a51Encrypt(String input, ArrayList<Integer> intPlainText) {
-
-        a51Object = new A51(input, intPlainText);
-
-        for (int i = 0; i < 416; i++) {
-            for (int j = 0; j < 8; j++) {
-
-                a51Object.pulse();
-
-            }
-            a51Object.update();
-        }
-
-        ArrayList<String> ciphertextStringArray = new ArrayList<>();
         String tempString = "";
-        ArrayList<Integer> ciphertextCopy = a51Object.ciphertext;
+        ArrayList<Integer> ciphertextCopy = a51DecryptObject.decryptCycle();
 
-        for (int i = 0; i < ciphertextCopy.size(); i = i + 8) {
-            for (int j = 0; j < 8; j++) {
+        ArrayList<String> ciphertextStringArray = formatObject.formatBytesToStringArray(ciphertextCopy);
 
-                tempString += String.valueOf(ciphertextCopy.get(j + i));
-
-            }
-            ciphertextStringArray.add(tempString);
-            tempString = "";
-        }
-
-        System.out.println(ciphertextStringArray);
-
-        ArrayList<Integer> cipherInt = new ArrayList<>();
-
-        for (int i = 0; i < ciphertextStringArray.size(); i++) {
-            cipherInt.add(Integer.parseInt(ciphertextStringArray.get(i), 2));
-        }
-
-        return cipherInt;
+       
+        ArrayList<Integer> tempArray = formatObject.formatStringToInt(ciphertextStringArray);
+       
+       
+        ArrayList<Double> tempArray2 = quantizerObject.deconvert(tempArray);
+        
+        chartData(tempArray2, chart3);
+        populateGridpane(tempArray2, decryptedGridpane);
 
     }
+
+  
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-
-        ksObject = new Knapsack();
+        
+        formatObject = new FormatData();
         rawData = scan(filePath);
-        //getDataFromFile("C:\\Users\\jesse\\Desktop\\ECG.xlsx");
+        ksObject = new Knapsack();
+        quantizerObject = new Quantizer();
 
+        quantifiedData = quantizerObject.convert(rawData);
+
+        //getDataFromFile("C:\\Users\\jesse\\Desktop\\ECG.xlsx");
         Text knapsackText = new Text("A public key cryptosystem created in 1978, Knapsack uses a public key for encryption and private/general key for decryption. Once a"
                 + " private key is selected (a set of 8 super-increasing numbers), the general key is generated using the formula n * PK[i] mod q");
         textflow1.getChildren().add(knapsackText);
 
         Text knapsackText2 = new Text("For demonstration, keys are hardcoded as follow: \n\n PK = [1,2,4,8,16,32,64,128] "
-                + "\n GK = [17,34,68,136,16,32,64,128] \n n (multiplier) = 17, m (modulus) = 128");
+                + "\n GK = [17,34,68,136,16,32,64,128] \n n (multiplier) = 17, m (modulus) = 256");
         textflow2.getChildren().add(knapsackText2);
 
         Text a51text = new Text("A stream-cipher developed for cell-phone communications, A5/1 uses a 64 bit queue to populate 3 registers, the contexts"
@@ -374,6 +235,28 @@ public class FXMLDocumentController implements Initializable {
                 + "used to further complicate the crypto-algorithm..");
 
         a51textflow.getChildren().add(a51text);
+
+    }
+
+    private void chartData(ArrayList arrayData, LineChart<?, ?> chart) {
+
+        XYChart.Series series = new XYChart.Series();
+        for (int i = 0; i < arrayData.size(); i++) {
+            series.getData().add(new XYChart.Data(i, arrayData.get(i)));
+        }
+        chart.getData().addAll(series);
+    }
+
+    private void populateGridpane(ArrayList arrayData, GridPane gridpane) {
+
+        gridpane.getChildren().clear();
+        gridpane.add(new Label("Index"), 0, 0);
+        gridpane.add(new Label("Value"), 1, 0);
+
+        for (int i = 0; i != arrayData.size(); i++) {
+            gridpane.add(new Label(Integer.toString(i + 1)), 0, i + 1);
+            gridpane.add(new Label((String.valueOf(arrayData.get(i)))), 1, i + 1);
+        }
 
     }
 
