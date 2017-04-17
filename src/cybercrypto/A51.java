@@ -10,22 +10,32 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 
-/*****************
-* class variables include 3 registers (shifting arrays) and array lists that contain different elements of
-* a51 (the queue, the keystream, the plaintext, and ciphertext.
-
-* when encrypting, the plaintext is passed into the class constructor, along with the initiation vector which
-* populates the queue and registers. Every cycle/pulse generates a keystream bit. After 8 pulses, the resulting
-* 8 bit keystream is XOR'ed with 8 bits of plaintext to create 8 bits of ciphertext. That ciphertext is then copied
-* into the right-most 8 bits of the queue, and the rest of the queue is shifted left 8 times.
-***************/
-
+/**
+ * ***************
+ * class variables include 3 registers (shifting arrays) and array lists that
+ * contain different elements of a51 (the queue, the keystream, the plaintext,
+ * and ciphertext.
+ *
+ * when encrypting, the plaintext is passed into the class constructor, along
+ * with the initiation vector which populates the queue and registers. Every
+ * cycle/pulse generates a keystream bit. After 8 pulses, the resulting 8 bit
+ * keystream is XOR'ed with 8 bits of plaintext to create 8 bits of ciphertext.
+ * That 8-bit ciphertext is then copied into the right-most 8 bits of the queue, and
+ * the rest of the queue is shifted left 8 times.
+ * 
+ * Notice for decrypting, ciphertext is passed in as the plaintext parameter along
+ * with the same IV vector. However, after the keystream is XOR'ed with the ciphertext
+ * to create plaintext, notice that 8 bit portions of the ciphertext (corresponding
+ * with the length of the keystream) are then fed into the feedback mechanism, so its
+ * not an exact reverse of the encryption process 
+**************
+ */
 public class A51 {
 
     Register regX;
     Register regY;
     Register regZ;
-    
+
     ArrayList<Integer> keystream;
     ArrayList<Integer> queue;
     ArrayList<Integer> plaintext;
@@ -36,9 +46,8 @@ public class A51 {
     int ySample = 3355443;
     int zSample = 7401712;
 
-
     public A51() {
-
+    //no arg constrcutor for testing
         regX = new Register(19, xSample);
         regY = new Register(22, ySample);
         regZ = new Register(23, zSample);
@@ -51,7 +60,7 @@ public class A51 {
         keystream = new ArrayList<Integer>();
         queue = new ArrayList<Integer>();
         ciphertext = new ArrayList<Integer>();
-   
+
         //this method passes the IV into the queue
         queueStringInit(stringInitVector);
 
@@ -75,7 +84,7 @@ public class A51 {
         regX = new Register(19, x);
         regY = new Register(22, y);
         regZ = new Register(23, z);
-    }   
+    }
 
     //the majority method, used to discern which registers get shifted each encryption pulse
     int majority(int x, int y, int z) {
@@ -88,7 +97,7 @@ public class A51 {
     //based on majoriy values, approrpriate registers get shifted. the cipheroutput bit is also produced and
     //added to the keystream.
     int pulse() {
-        
+
         int m = majority(regX.get(8), regY.get(10), regZ.get(10));
         //System.out.println("M: " + m);
         int cipherOutput = (regX.get(18) ^ regY.get(21) ^ regZ.get(22));
@@ -110,73 +119,94 @@ public class A51 {
         keystream.add(cipherOutput);
         return cipherOutput;
     }
-    
+
     //XOR method. takes the last 8 bits of the keystream and XOR's with respective bits from plaintext
-    ArrayList<Integer> xor(ArrayList<Integer> plaintext, ArrayList<Integer> keytext){
-        
-        ArrayList<Integer> solution = new ArrayList<>();     
-        
-        int keyIndex = keytext.size();        
-        
-        for (int i = 8; i > 0; i--){
+    ArrayList<Integer> xor(ArrayList<Integer> plaintext, ArrayList<Integer> keytext) {
+
+        ArrayList<Integer> solution = new ArrayList<>();
+
+        int keyIndex = keytext.size();
+
+        for (int i = 8; i > 0; i--) {
             solution.add(plaintext.get(keyIndex - i) ^ keytext.get(keyIndex - i));
-        }        
-        
-        return solution;        
-    }
-
-    //prints array contents
-    static void intArrayPrint(Register reg) {
-
-        int[] temp = reg.getArray();
-        for (int i = 0; i < temp.length; i++) {
-            System.out.print(temp[i]);
         }
-        System.out.println("");
-    }
-   
-    //used for testing, a method to simplify printing register contents
-    void registerPrint() {
-        intArrayPrint(regX);
-        intArrayPrint(regY);
-        intArrayPrint(regZ);
-    }
 
-    //initiates IV into queue
-    void queueStringInit(String s) {
-
-        String[] stringArray = s.split("");
-        for (int i = 0; i < stringArray.length; i++) {
-            queue.add(Integer.parseInt(stringArray[i]));
-        }
-    }
-    
-    //setter
-    void setPlaintext(ArrayList<Integer> plaintext){
-        this.plaintext = plaintext;
+        return solution;
     }
 
     //this method reflects the cipher-feedback process in our algorithm. after pulsing 8 times, this method
-    //is called to XOR the keystream with plaintext, and copy resulting ciphertext into the queue
+    //is called to XOR the keystream with plaintext, and copy resulting last 8 bits of ciphertext into the queue
+    //while resetting registers
     void update() {
 
         //shifting queue left 8 units
         for (int i = 0; i < 56; i++) {
             queue.set(i, queue.get(i + 8));
         }
-                
+
         //adding results of plaintext XOR keystream to ciphertext
         ciphertext.addAll(xor(plaintext, keystream));
-        
+
         //takes last 8 bits of ciphertext and copies to right 8 bits in queue               
         int ciphertextIndexOfLast = ciphertext.size();
 
         for (int i = ciphertextIndexOfLast - 8; i < ciphertextIndexOfLast; i++) {
             queue.set((i - ((ciphertextIndexOfLast - 8)) + 56), ciphertext.get(i));
         }
-        
+
         //using the new queue, populates registers with new data
         resetRegisters((ArrayList<Integer>) queue);
+    }
+
+    //consolidates the amount of pulses/updates for the entire ekg file
+    public ArrayList<Integer> encryptCycle() {
+
+        for (int i = 0; i < 416; i++) {
+            for (int j = 0; j < 8; j++) {
+                pulse();
+            }
+            update();
+        }
+        return ciphertext;
+    }
+
+    //consolidates the total amount of pulses/cycles required for entire ekg file
+    public ArrayList<Integer> decryptCycle() {
+
+        for (int i = 0; i < 416; i++) {
+            for (int j = 0; j < 8; j++) {
+                pulse();
+            }
+            updateDecrypt();
+        }
+        return ciphertext;
+    }
+
+    //similar to the other update, but for decrypting. after every 8 pulses, this call XORs the keystream with
+    //ciphertext to create plaintext, and then updates the queue (and registers) by pushing the 8 corresponding bits of ciphertext 
+    //to the queue
+    void updateDecrypt() {
+
+        for (int i = 0; i < 56; i++) {
+            queue.set(i, queue.get(i + 8));
+        }
+
+        //adding results of plaintext XOR keystream to ciphertext
+        ciphertext.addAll(xor(plaintext, keystream));
+
+        //takes last 8 bits of ciphertext and copies to right 8 bits in queue               
+        int ciphertextIndexOfLast = ciphertext.size();
+
+        //notice here the bits being pushed into queue are from the ciphertext generated during encryption. although the information
+        //is stored in a variable named "plaintext," the encrypted ciphertext is what was actually passed into that plaintext variable
+        //for decryption
+        for (int i = ciphertextIndexOfLast - 8; i < ciphertextIndexOfLast; i++) {
+            queue.set((i - ((ciphertextIndexOfLast - 8)) + 56), plaintext.get(i));
+        }
+
+        //using the new queue, populates registers with new data
+        resetRegisters(queue);
+
     }
 
     //this method passes in new queue after an update and updates registers
@@ -200,6 +230,36 @@ public class A51 {
 
     }
 
+    //prints array contents
+    static void intArrayPrint(Register reg) {
+
+        int[] temp = reg.getArray();
+        for (int i = 0; i < temp.length; i++) {
+            System.out.print(temp[i]);
+        }
+        System.out.println("");
+    }
+
+    //used for testing, a method to simplify printing register contents
+    void registerPrint() {
+        intArrayPrint(regX);
+        intArrayPrint(regY);
+        intArrayPrint(regZ);
+    }
+
+    //initiates IV into queue
+    void queueStringInit(String s) {
+        String[] stringArray = s.split("");
+        for (int i = 0; i < stringArray.length; i++) {
+            queue.add(Integer.parseInt(stringArray[i]));
+        }
+    }
+
+    //setter
+    void setPlaintext(ArrayList<Integer> plaintext) {
+        this.plaintext = plaintext;
+    }
+
     //class that defines behavior of registers
     class Register {
 
@@ -210,7 +270,7 @@ public class A51 {
 
             registerArray = new int[size];
             String stringBinary = Integer.toBinaryString(decimalData);
-            while(stringBinary.length() < size){
+            while (stringBinary.length() < size) {
                 stringBinary = "0" + stringBinary;
             }
             String[] stringArray = stringBinary.split("");
@@ -219,7 +279,7 @@ public class A51 {
                 registerArray[i] = Integer.parseInt(stringArray[i]);
             }
         }
-        
+
         //alternative constructor using size and integer array
         public Register(int size, int[] intArrData) {
 
@@ -253,10 +313,6 @@ public class A51 {
     }
 }
 
-
-
-
-
 /*
 
 
@@ -280,13 +336,9 @@ public class A51 {
             System.out.println(a.pulse());
             a.registerPrint();
         }
-        */
-    
-        
-        
-        
-        //System.out.println(iv.length());
-        /* a.registerPrint();
+ */
+//System.out.println(iv.length());
+/* a.registerPrint();
         int pulseAmount = 8;
 
         for (int i = 0; i < pulseAmount; i++) {
@@ -305,4 +357,3 @@ public class A51 {
 
         //intArrayPrint(a.regZ); 
     }  */
-

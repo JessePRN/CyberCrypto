@@ -74,8 +74,9 @@
                         <Button fx:id="a51EncryptButton" layoutX="390.0" layoutY="132.0" mnemonicParsing="false" onAction="#a51EncryptButtonAction" text="Encrypt" />
                         <Button fx:id="a51DecryptButton" layoutX="389.0" layoutY="172.0" mnemonicParsing="false" onAction="#a51DecryptButtonAction" text="Decrypt" />
                         <Label fx:id="keyPrompt" layoutX="37.0" layoutY="137.0" text="Enter IV in hex (16 characters)" />
-                        <TextField fx:id="keyField" layoutX="46.0" layoutY="172.0" prefHeight="31.0" prefWidth="179.0" promptText="A58F 26C3 1337 E42D" />
+                        <TextField fx:id="keyField" layoutX="46.0" layoutY="163.0" prefHeight="31.0" prefWidth="179.0" promptText="A58F 26C3 1337 E42D" />
                         <TextFlow fx:id="a51textflow" layoutX="19.0" layoutY="11.0" prefHeight="108.0" prefWidth="461.0" />
+                        <Label layoutX="29.0" layoutY="203.0" text="Or Hit Enter to test Default Value" />
                      </children></AnchorPane>
             </content>
           </Tab>

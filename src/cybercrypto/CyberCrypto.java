@@ -14,7 +14,8 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 /**
- *
+ * this is file that launches when program first runs. tells project to load the GUI from the fxml file, which then passes
+ * off control to the DocumentController file that handles the GUI interface
  * @author jesse
  */
 public class CyberCrypto extends Application {
@@ -26,11 +27,7 @@ public class CyberCrypto extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         
-        Parent root = FXMLLoader.load(getClass().getResource("FXMLDocument.fxml"));
-        
-        //rawData = scan(fileName);
-        
-        
+        Parent root = FXMLLoader.load(getClass().getResource("FXMLDocument.fxml"));     
         
         Scene scene = new Scene(root);
         
@@ -43,8 +40,5 @@ public class CyberCrypto extends Application {
      */
     public static void main(String[] args) {
         launch(args);
-    }
-    
-    
-    
+    }   
 }
